@@ -29,12 +29,22 @@ def click_text(page, label):
     loc = page.get_by_text(re.compile(rf"^\s*{re.escape(label)}\s*$", re.I))
     for i in range(loc.count()):
         el = loc.nth(i)
-        if el.is_visible():
+        try:
+            if not el.is_visible():
+                continue
             el.scroll_into_view_if_needed()
-            el.click(timeout=5000)
+            try:
+                el.click(timeout=2000)
+            except Exception:  # noqa: BLE001
+                try:  # something overlaps it: force the click
+                    el.click(timeout=2000, force=True)
+                except Exception:  # noqa: BLE001
+                    el.evaluate("e => e.click()")  # last resort: JS click
             time.sleep(2)
             return True
-    print(f"WARN: '{label}' not found/visible")
+        except Exception as e:  # noqa: BLE001
+            print(f"WARN: click '{label}' failed: {str(e)[:120]}")
+    print(f"WARN: '{label}' not found/clickable")
     return False
 
 
